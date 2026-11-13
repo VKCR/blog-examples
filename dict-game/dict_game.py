@@ -3,11 +3,14 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
-from utils import build_dictionary, get_prompt
+from utils import NUM_ITERATIONS, WORDS_PER_LETTER, build_dictionary, get_prompt
 
 
 class DictionaryGameResult(BaseModel):
-    words: list[str] = Field(min_length=101, max_length=101)
+    words: list[str] = Field(
+        min_length=NUM_ITERATIONS + 1,
+        max_length=NUM_ITERATIONS + 1,
+    )
 
 
 def llm_dict_game(
@@ -37,19 +40,15 @@ def local_dict_game() -> DictionaryGameResult:
     # 2. Start the index at the length of the initial word
     i = len(current_word)
 
-    # 3. Do this for n_iter iterations
-
-    n_iter = 100
-
-    for _ in range(n_iter):
+    # 3. Run the configured number of iterations
+    for _ in range(NUM_ITERATIONS):
         # 4. Lookup the list of words starting with the last letter of the current word
         last_letter = current_word[-1]
 
         word_list = word_dict[last_letter]
 
-        # 5. Print the i-th word of that list
-        # Since i increments indefinitely, we use modulo 100 (i % 100) to safely index into the 100-word list
-        new_word = word_list[i % 100]
+        # 5. Use modulo to wrap the index within the word list
+        new_word = word_list[i % WORDS_PER_LETTER]
         words.append(new_word)
 
         # 6. Increment i by the lengths of the previous and newly selected words
@@ -74,7 +73,7 @@ def print_dictionary_game_result(result: DictionaryGameResult) -> None:
     for iteration, word in enumerate(result.words[1:], start=1):
         print(
             f"Iteration {iteration:3}: {word:<15} "
-            f"(Used index {i} % 100 = {i % 100})"
+            f"(Used index {i} % {WORDS_PER_LETTER} = {i % WORDS_PER_LETTER})"
         )
         i += len(previous_word) + len(word)
         previous_word = word
