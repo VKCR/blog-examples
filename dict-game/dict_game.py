@@ -13,7 +13,6 @@ class DictionaryGameResult(BaseModel):
 
 def llm_dict_game(model: str = "openai/gpt-6-sol") -> DictionaryGameResult:
     """Run the dictionary game with an LLM and return its word sequence."""
-    load_dotenv()
 
     with OpenRouter(api_key=os.environ["OPENROUTER_API_KEY"]) as client:
         response = client.chat.send(
@@ -95,6 +94,10 @@ def compare_outputs(
         second: DictionaryGameResult,
 ) -> None:
     """Print the first index and words at which two game results diverge."""
+    if len(first.words) != len(second.words):
+        print("Size mismatch")
+        return
+
     for index, (first_word, second_word) in enumerate(
             zip(first.words, second.words)
     ):
@@ -105,23 +108,17 @@ def compare_outputs(
             )
             return
 
-    if len(first.words) != len(second.words):
-        index = min(len(first.words), len(second.words))
-        first_word = first.words[index] if index < len(first.words) else None
-        second_word = second.words[index] if index < len(second.words) else None
-        print(
-            f"First divergence at index {index}: "
-            f"{first_word!r} != {second_word!r}"
-        )
-        return
-
     print("The dictionary game results are identical.")
 
 
 if __name__ == "__main__":
+    load_dotenv()
+
     local_res = local_dict_game()
     print_dictionary_game_result(local_res)
+
     llm_res = llm_dict_game()
     print_dictionary_game_result(llm_res)
+
     compare_outputs(llm_res, local_res)
 
