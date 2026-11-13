@@ -1,2 +1,2 @@
-openrouter
+pydantic-ai-slim[openrouter]
 python-dotenv
