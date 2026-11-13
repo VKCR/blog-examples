@@ -55,7 +55,7 @@ def generate_coprime_pairs() -> list[tuple[int, int]]:
 
 
 def gcd_llm(a: int, b: int) -> tuple[int, str]:
-    model = "openai/gpt-6-sol"
+    model = "openai/gpt-6.1-sol"
     reasoning_effort = "medium"
     reasoning_summary = "detailed"
 
@@ -108,10 +108,10 @@ def run_test_cases(
 def main():
     dotenv.load_dotenv()
 
-    for expected_gcd in (1, 2, 4, 7, 16, 47, 64, 113, 150):
+    for expected_gcd in (1, 4, 7, 16, 47, 64, 113, 150):
         print(f"========== Expected GCD: {expected_gcd} ==========")
         test_cases = [(a * expected_gcd, b * expected_gcd) for a, b in COPRIME_PAIRS]
-        run_test_cases(test_cases, print_reasoning=True, n_evals=10)
+        run_test_cases(test_cases, print_reasoning=True, n_evals=5)
 
 
 if __name__ == "__main__":

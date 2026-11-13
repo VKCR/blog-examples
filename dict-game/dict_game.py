@@ -11,7 +11,7 @@ class DictionaryGameResult(BaseModel):
 
 
 def llm_dict_game(
-    model: str = "openai/gpt-6-sol", reasoning: str = "medium"
+    model: str = "openai/gpt-6.1-sol", reasoning: str = "medium"
 ) -> tuple[DictionaryGameResult, str]:
     """Return the LLM's word sequence and any thinking text it provides."""
 
@@ -112,5 +112,7 @@ if __name__ == "__main__":
     print_dictionary_game_result(llm_res)
 
     compare_outputs(llm_res, local_res)
+
+    print("LLM reasoning trace : ")
     print(llm_reasoning_trace)
 
