@@ -1,3 +1,4 @@
+import asyncio
 from random import randint
 
 import dotenv
@@ -54,7 +55,7 @@ def generate_coprime_pairs() -> list[tuple[int, int]]:
     return pairs
 
 
-def gcd_llm(a: int, b: int) -> tuple[int, str]:
+async def gcd_llm(a: int, b: int) -> tuple[int, str]:
     model = "openai/gpt-6.1-sol"
     reasoning_effort = "medium"
     reasoning_summary = "detailed"
@@ -70,11 +71,11 @@ def gcd_llm(a: int, b: int) -> tuple[int, str]:
     model_settings["extra_body"] = {
         "reasoning": {"effort": reasoning_effort, "summary": reasoning_summary}
     }
-    response = agent.run_sync(prompt, model_settings=model_settings)
+    response = await agent.run(prompt, model_settings=model_settings)
     return response.output, (response.response.thinking or "").strip()
 
 
-def run_test_cases(
+async def run_test_cases(
     test_cases: list[tuple[int, int]], *, print_reasoning: bool = True, n_evals: int = 1
 ) -> None:
     if n_evals < 1:
@@ -88,31 +89,29 @@ def run_test_cases(
         print("\n--- Local GCD ---")
         print(local_gcd)
 
-        llm_results = []
-        for eval_index in range(1, n_evals + 1):
+        evaluations = await asyncio.gather(*(gcd_llm(a, b) for _ in range(n_evals)))
+        for eval_index, (llm_gcd, reasoning_text) in enumerate(evaluations, start=1):
             print(f"\n--- LLM GCD ({eval_index}/{n_evals}) ---")
-            llm_gcd, reasoning_text = gcd_llm(a, b)
-            llm_results.append(llm_gcd)
             print(llm_gcd)
 
             if print_reasoning:
                 print("\nReasoning trace:")
                 print(reasoning_text or "No reasoning text returned.")
 
-        correct_results = llm_results.count(local_gcd)
+        correct_results = sum(llm_gcd == local_gcd for llm_gcd, _ in evaluations)
         accuracy = correct_results / n_evals
         print(f"\nLLM accuracy: {correct_results}/{n_evals} ({accuracy:.2%})")
         print()
 
 
-def main():
+async def main():
     dotenv.load_dotenv()
 
     for expected_gcd in (1, 4, 7, 16, 47, 64, 113, 150):
         print(f"========== Expected GCD: {expected_gcd} ==========")
         test_cases = [(a * expected_gcd, b * expected_gcd) for a, b in COPRIME_PAIRS]
-        run_test_cases(test_cases, print_reasoning=True, n_evals=5)
+        await run_test_cases(test_cases, print_reasoning=True, n_evals=5)
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
