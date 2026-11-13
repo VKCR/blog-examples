@@ -1,8 +1,7 @@
-import os
-
 from dotenv import load_dotenv
-from openrouter import OpenRouter
 from pydantic import BaseModel, Field
+from pydantic_ai import Agent
+from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 from utils import build_dictionary, get_prompt
 
@@ -11,29 +10,21 @@ class DictionaryGameResult(BaseModel):
     words: list[str] = Field(min_length=101, max_length=101)
 
 
-def llm_dict_game(model: str = "openai/gpt-6-sol") -> DictionaryGameResult:
-    """Run the dictionary game with an LLM and return its word sequence."""
+def llm_dict_game(
+    model: str = "openai/gpt-6-sol", reasoning: str = "medium"
+) -> tuple[DictionaryGameResult, str]:
+    """Return the LLM's word sequence and any thinking text it provides."""
 
-    with OpenRouter(api_key=os.environ["OPENROUTER_API_KEY"]) as client:
-        response = client.chat.send(
-            model=model,
-            messages=[{"role": "user", "content": get_prompt()}],
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "dictionary_game_result",
-                    "strict": True,
-                    "schema": DictionaryGameResult.model_json_schema(),
-                },
-            },
-            provider={"require_parameters": True},
-        )
-
-    content = response.choices[0].message.content
-    if not isinstance(content, str):
-        raise ValueError("The LLM returned no text content")
-
-    return DictionaryGameResult.model_validate_json(content)
+    agent = Agent(
+        f"openrouter:{model}",
+        output_type=DictionaryGameResult,
+        model_settings=OpenRouterModelSettings(
+            openrouter_provider={"require_parameters": True},
+            extra_body={"reasoning": {"effort": reasoning, "summary": "detailed"}},
+        ),
+    )
+    result = agent.run_sync(get_prompt())
+    return result.output, (result.response.thinking or "").strip()
 
 
 def local_dict_game() -> DictionaryGameResult:
@@ -117,8 +108,9 @@ if __name__ == "__main__":
     local_res = local_dict_game()
     print_dictionary_game_result(local_res)
 
-    llm_res = llm_dict_game()
+    llm_res, llm_reasoning_trace = llm_dict_game()
     print_dictionary_game_result(llm_res)
 
     compare_outputs(llm_res, local_res)
+    print(llm_reasoning_trace)
 

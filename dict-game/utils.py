@@ -50,5 +50,5 @@ Do this for 100 iterations. You should therefore produce a "random walk" of exac
 Here is the dictionary : 
 {build_dictionary()}
 
-Return only a JSON object with a single "words" property. Its first item must be the initial word "aquatically", followed by the 100 selected words in iteration order. Do not include iteration numbers, explanations, or any other properties.
+Return the initial word "aquatically" followed by the 100 selected words in iteration order.
 """
