@@ -1,6 +1,7 @@
 from random import randint
 
 import dotenv
+import pydantic_ai
 from pydantic_ai import Agent
 from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
@@ -60,6 +61,7 @@ def gcd_llm(a: int, b: int) -> tuple[int, str]:
 
     prompt = f"{GCD_PROMPT.strip()}\n\nFirst number: {a}\nSecond number: {b}"
 
+    pydantic_ai.BANNER_ENABLED = False
     agent = Agent(
         f"openrouter:{model}",
         output_type=int,
@@ -72,27 +74,44 @@ def gcd_llm(a: int, b: int) -> tuple[int, str]:
     return response.output, (response.response.thinking or "").strip()
 
 
-def run_test_cases(test_cases: list[tuple[int, int]], *, print_reasoning: bool = True) -> None:
+def run_test_cases(
+    test_cases: list[tuple[int, int]], *, print_reasoning: bool = True, n_evals: int = 1
+) -> None:
+    if n_evals < 1:
+        raise ValueError("n_evals must be at least 1")
+
     for index, (a, b) in enumerate(test_cases, start=1):
         print(f"========== Test case {index} ==========")
         print(f"a = {a}\nb = {b}")
 
+        local_gcd, _ = gcd(a, b)
         print("\n--- Local GCD ---")
-        print(gcd(a, b)[0])
+        print(local_gcd)
 
-        print("\n--- LLM GCD ---")
-        llm_gcd, reasoning_text = gcd_llm(a, b)
-        print(llm_gcd)
+        llm_results = []
+        for eval_index in range(1, n_evals + 1):
+            print(f"\n--- LLM GCD ({eval_index}/{n_evals}) ---")
+            llm_gcd, reasoning_text = gcd_llm(a, b)
+            llm_results.append(llm_gcd)
+            print(llm_gcd)
 
-        if print_reasoning:
-            print("\n--- Reasoning trace ---")
-            print(reasoning_text or "No reasoning text returned.")
+            if print_reasoning:
+                print("\nReasoning trace:")
+                print(reasoning_text or "No reasoning text returned.")
+
+        correct_results = llm_results.count(local_gcd)
+        accuracy = correct_results / n_evals
+        print(f"\nLLM accuracy: {correct_results}/{n_evals} ({accuracy:.2%})")
         print()
 
 
 def main():
     dotenv.load_dotenv()
-    run_test_cases(COPRIME_PAIRS, print_reasoning=False)
+
+    for expected_gcd in (1, 2, 4, 7, 16, 47, 64, 113, 150):
+        print(f"========== Expected GCD: {expected_gcd} ==========")
+        test_cases = [(a * expected_gcd, b * expected_gcd) for a, b in COPRIME_PAIRS]
+        run_test_cases(test_cases, print_reasoning=True, n_evals=10)
 
 
 if __name__ == "__main__":
