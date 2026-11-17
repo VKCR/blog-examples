@@ -56,7 +56,7 @@ def generate_coprime_pairs() -> list[tuple[int, int]]:
 
 
 async def gcd_llm(a: int, b: int) -> tuple[int, str]:
-    model = "openai/gpt-6.1-sol"
+    model = "openai/gpt-6-luna"
     reasoning_effort = "medium"
     reasoning_summary = "detailed"
 
@@ -104,6 +104,52 @@ async def run_test_cases(
         print()
 
 
+def format_results_table() -> str:
+    """Return one Markdown accuracy table per model."""
+    luna_correct_counts = {
+        1: [5, 5, 5, 5, 4, 4, 4, 5, 5, 5],
+        4: [5, 5, 5, 4, 5, 4, 3, 5, 4, 5],
+        7: [4, 2, 5, 2, 0, 2, 0, 1, 0, 0],
+        16: [5, 4, 3, 5, 3, 5, 4, 5, 3, 1],
+        47: [5, 2, 3, 2, 4, 2, 0, 0, 0, 0],
+        64: [4, 3, 5, 5, 2, 2, 1, 4, 0, 1],
+        113: [5, 2, 4, 0, 1, 0, 0, 0, 0, 0],
+        150: [3, 5, 3, 4, 0, 3, 2, 2, 3, 1],
+    }
+    data_luna = {
+        gcd_value: [count / 5 for count in counts]
+        for gcd_value, counts in luna_correct_counts.items()
+    }
+    sol_correct_counts = {
+        1: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        4: [5, 5, 5, 5, 5, 5, 5, 4, 5, 5],
+        7: [5, 5, 5, 4, 5, 4, 5, 5, 3, 2],
+        16: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
+        47: [5, 5, 5, 5, 3, 5, 3, 5, 2, 1],
+        64: [5, 5, 5, 4, 5, 5, 5, 5, 5, 5],
+        113: [5, 5, 5, 3, 5, 3, 2, 4, 3, 2],
+        150: [5, 5, 4, 3, 4, 5, 5, 5, 3, 3],
+    }
+    dataset_sol = {
+        gcd_value: [count / 5 for count in counts]
+        for gcd_value, counts in sol_correct_counts.items()
+    }
+
+    digit_counts = range(5, 51, 5)
+    headings = ["GCD", *(f"{digits} digits" for digits in digit_counts)]
+    header = "| " + " | ".join(headings) + " |"
+    separator = "| " + " | ".join(["---:"] * len(headings)) + " |"
+    tables = []
+    for model_name, dataset in (("GPT-6 Luna", data_luna), ("GPT-6.1 Sol", dataset_sol)):
+        rows = [f"### {model_name}", "", header, separator]
+        for gcd_value, rates in dataset.items():
+            percentages = " | ".join(f"{accuracy:.0%}" for accuracy in rates)
+            rows.append(f"| {gcd_value} | {percentages} |")
+        tables.append("\n".join(rows))
+
+    return "\n\n".join(tables)
+
+
 async def main():
     dotenv.load_dotenv()
 
@@ -114,4 +160,5 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    #asyncio.run(main())
+    print(format_results_table())
