@@ -1070,5 +1070,7 @@ Do this for {NUM_ITERATIONS} iterations. You should therefore produce a "random 
 Here is the dictionary : 
 {build_dictionary()}
 
+Do not use any helper code for this task.
+
 Return the initial word "aquatically" followed by the {NUM_ITERATIONS} selected words in iteration order.
 """

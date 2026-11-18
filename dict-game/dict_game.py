@@ -1,11 +1,14 @@
 from statistics import median
 
+import pydantic_ai
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 from pydantic_ai.models.openrouter import OpenRouterModelSettings
 
 from utils import NUM_ITERATIONS, WORDS_PER_LETTER, build_dictionary, get_prompt
+
+pydantic_ai.BANNER_ENABLED = False
 
 
 class DictionaryGameResult(BaseModel):
@@ -111,27 +114,50 @@ def print_difference(
         )
 
 
-def median_first_divergence(model: str, reference: DictionaryGameResult) -> int:
+def median_first_divergence(
+    model: str,
+    reference: DictionaryGameResult,
+    verbose: bool = True,
+) -> int:
     """Return the median first divergence index across five runs of the model."""
     divergence_indices = []
-    for _ in range(5):
-        result, _ = llm_dict_game(model=model)
+    for run in range(1, 6):
+        print(f"\nModel {model}, run {run}/5")
+        result, reasoning_trace = llm_dict_game(model=model)
         divergence_indices.append(compare_outputs(result, reference))
+        if verbose:
+            print_dictionary_game_result(result)
+            print_difference(result, reference)
+            print("LLM reasoning trace")
+            print(reasoning_trace)
 
     return median(divergence_indices)
 
 
-if __name__ == "__main__":
-    load_dotenv()
-
+def main() -> None:
+    """Evaluate five models against the local game and print their median divergences."""
     local_res = local_dict_game()
+    print("Local dictionary game")
     print_dictionary_game_result(local_res)
 
-    llm_res, llm_reasoning_trace = llm_dict_game()
-    print_dictionary_game_result(llm_res)
+    models = [
+        # "openai/gpt-6.1-sol",
+        # "openai/gpt-6-sol",
+        # "openai/gpt-6-luna",
+        # "anthropic/claude-sonnet-4.5",
+        "google/gemini-2.5-pro",
+    ]
+    results = []
+    for model in models:
+        median_index = median_first_divergence(model, local_res)
+        results.append((model, median_index))
 
-    print_difference(llm_res, local_res)
+    print("\nExperiment results")
+    for model, median_index in results:
+        print(f"- {model}: median first divergence = {median_index}")
 
-    print("LLM reasoning trace : ")
-    print(llm_reasoning_trace)
+
+if __name__ == "__main__":
+    load_dotenv()
+    main()
 
