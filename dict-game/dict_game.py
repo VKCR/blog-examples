@@ -135,17 +135,16 @@ def median_first_divergence(
 
 
 def main() -> None:
-    """Evaluate five models against the local game and print their median divergences."""
+    """Evaluate four models against the local game and print their median divergences."""
     local_res = local_dict_game()
     print("Local dictionary game")
     print_dictionary_game_result(local_res)
 
     models = [
-        # "openai/gpt-6.1-sol",
+        "openai/gpt-6.1-sol",
         # "openai/gpt-6-sol",
+        # "openai/gpt-6-terra",
         # "openai/gpt-6-luna",
-        # "anthropic/claude-sonnet-4.5",
-        "google/gemini-2.5-pro",
     ]
     results = []
     for model in models:
