@@ -1,3 +1,5 @@
+from statistics import median
+
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
@@ -80,25 +82,43 @@ def print_dictionary_game_result(result: DictionaryGameResult) -> None:
 
 
 def compare_outputs(
-        first: DictionaryGameResult,
-        second: DictionaryGameResult,
-) -> None:
-    """Print the first index and words at which two game results diverge."""
+    first: DictionaryGameResult,
+    second: DictionaryGameResult,
+) -> int:
+    """Return the first divergence index, or the length for a full match."""
     if len(first.words) != len(second.words):
-        print("Size mismatch")
-        return
+        raise ValueError("Dictionary game results have different sizes.")
 
-    for index, (first_word, second_word) in enumerate(
-            zip(first.words, second.words)
-    ):
+    for index, (first_word, second_word) in enumerate(zip(first.words, second.words)):
         if first_word != second_word:
-            print(
-                f"First divergence at index {index}: "
-                f"{first_word!r} != {second_word!r}"
-            )
-            return
+            return index
 
-    print("The dictionary game results are identical.")
+    return len(first.words)
+
+
+def print_difference(
+    first: DictionaryGameResult,
+    second: DictionaryGameResult,
+) -> None:
+    """Print whether two game results match and their first divergence if any."""
+    index = compare_outputs(first, second)
+    if index == len(first.words):
+        print("The dictionary game results are identical.")
+    else:
+        print(
+            f"First divergence at index {index}: "
+            f"{first.words[index]!r} != {second.words[index]!r}"
+        )
+
+
+def median_first_divergence(model: str, reference: DictionaryGameResult) -> int:
+    """Return the median first divergence index across five runs of the model."""
+    divergence_indices = []
+    for _ in range(5):
+        result, _ = llm_dict_game(model=model)
+        divergence_indices.append(compare_outputs(result, reference))
+
+    return median(divergence_indices)
 
 
 if __name__ == "__main__":
@@ -110,7 +130,7 @@ if __name__ == "__main__":
     llm_res, llm_reasoning_trace = llm_dict_game()
     print_dictionary_game_result(llm_res)
 
-    compare_outputs(llm_res, local_res)
+    print_difference(llm_res, local_res)
 
     print("LLM reasoning trace : ")
     print(llm_reasoning_trace)
